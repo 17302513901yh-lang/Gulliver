@@ -9,7 +9,105 @@
 <meta property="og:description" content="Estimate the cost, rehearse on 1% of the data, predict 100%, and only run inside a budget. MCP server + CLI for Claude Code, Codex, Cursor, Gemini CLI and any agent.">
 <meta property="og:image" content="https://laaielichter.github.io/Gulliver/og.png">
 <meta property="og:url" content="https://laaielichter.github.io/Gulliver/">
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="Gulliver">
 <meta name="twitter:card" content="summary_large_image">
+<meta name="keywords" content="MCP server, AI agents, SQL, cost estimate, dry run, sampling, scale lint, query optimization, text-to-SQL, data engineering, data quality, data lineage, DuckDB, Postgres, BigQuery, Snowflake, dbt, Claude Code, Codex, Cursor, Gemini CLI">
+<link rel="canonical" href="https://laaielichter.github.io/Gulliver/">
+<meta name="theme-color" content="#EDF1EF" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#0F1C27" media="(prefers-color-scheme: dark)">
+<script type="application/ld+json">
+[
+ {
+  "@context": "https://schema.org",
+  "@type": "SoftwareApplication",
+  "name": "Gulliver",
+  "alternateName": "gulliver-mcp",
+  "description": "Open-source MCP server and CLI that lets AI agents estimate the cost of SQL, fix slow queries, rehearse on 1%, 3% and 10% samples, predict the full run and only run it inside a budget.",
+  "url": "https://laaielichter.github.io/Gulliver/",
+  "applicationCategory": "DeveloperApplication",
+  "operatingSystem": "Windows, macOS, Linux",
+  "license": "https://opensource.org/licenses/MIT",
+  "isAccessibleForFree": true,
+  "offers": {
+   "@type": "Offer",
+   "price": "0",
+   "priceCurrency": "USD"
+  },
+  "downloadUrl": "https://pypi.org/project/gulliver-mcp/",
+  "codeRepository": "https://github.com/laaielichter/Gulliver",
+  "programmingLanguage": "Python",
+  "author": {
+   "@type": "Person",
+   "name": "laaielichter",
+   "url": "https://github.com/laaielichter"
+  },
+  "keywords": "MCP server, AI agents, SQL, cost estimate, scale lint, query optimization, data engineering, DuckDB, Postgres, BigQuery, Snowflake"
+ },
+ {
+  "@context": "https://schema.org",
+  "@type": "FAQPage",
+  "mainEntity": [
+   {
+    "@type": "Question",
+    "name": "Does Gulliver send my data or my SQL anywhere?",
+    "acceptedAnswer": {
+     "@type": "Answer",
+     "text": "No. It runs on your machine and only talks to the databases you configure. Receipts, the spend ledger and approvals are JSON files in ./.gulliver/. There is no telemetry."
+    }
+   },
+   {
+    "@type": "Question",
+    "name": "Do I need a warehouse to try it?",
+    "acceptedAnswer": {
+     "@type": "Answer",
+     "text": "No. gulliver demo builds a DuckDB database with 5 million events in seconds, and gulliver lint works without any database at all."
+    }
+   },
+   {
+    "@type": "Question",
+    "name": "Which agents and models does it work with?",
+    "acceptedAnswer": {
+     "@type": "Answer",
+     "text": "Any MCP client: Claude Code, Codex, Cursor, Gemini CLI, Claude Desktop, VS Code, Windsurf. Without MCP, use the CLI with --json, or gulliver tools --format openai or gemini for function calling. Every answer is short JSON with a status and a next_step, so smaller models can follow the loop too."
+    }
+   },
+   {
+    "@type": "Question",
+    "name": "How accurate is the prediction?",
+    "acceptedAnswer": {
+     "@type": "Answer",
+     "text": "It is a growth curve fitted on three samples, so it comes with a confidence level and a range (x0.7 to 1.5 when confidence is high, up to x0.25 to 4 when it is low). On BigQuery the money estimate uses the exact dry-run bytes of the full query. After a real run, the receipt shows predicted versus actual. Joins and skewed data can grow faster than the data; Gulliver flags that instead of hiding it."
+    }
+   },
+   {
+    "@type": "Question",
+    "name": "Can the agent change or delete data?",
+    "acceptedAnswer": {
+     "@type": "Answer",
+     "text": "Not by default. Only SELECT runs. Writes (CREATE TABLE AS SELECT, INSERT SELECT) need both the call and a human-set allow_write on the connection, and the agent cannot approve its own runs."
+    }
+   },
+   {
+    "@type": "Question",
+    "name": "How is this different from EXPLAIN or a BigQuery dry run?",
+    "acceptedAnswer": {
+     "@type": "Answer",
+     "text": "Gulliver uses those for the preflight. On top of that it rehearses on samples to show how runtime and output rows grow, rewrites slow SQL with a stated guarantee, enforces a budget, and writes a receipt, in one JSON format across four engines."
+    }
+   },
+   {
+    "@type": "Question",
+    "name": "Is it ready for production on BigQuery and Snowflake?",
+    "acceptedAnswer": {
+     "@type": "Answer",
+     "text": "Not yet. Both are beta and have been tested against fakes, not live accounts. DuckDB and Postgres are tested in CI, Postgres against a live server. Reports from real warehouses are very welcome."
+    }
+   }
+  ]
+ }
+]
+</script>
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect x='3' y='20' width='4' height='9' fill='%232F7D6D'/%3E%3Crect x='10' y='14' width='4' height='15' fill='%232F7D6D'/%3E%3Crect x='17' y='8' width='4' height='21' fill='%232F7D6D'/%3E%3Crect x='24' y='2' width='5' height='27' fill='none' stroke='%23B5781C' stroke-width='2' stroke-dasharray='3 2'/%3E%3C/svg%3E">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -53,9 +151,12 @@ h1{font-size:clamp(2.4rem,5.2vw,4.1rem);line-height:1.02;letter-spacing:-.025em;
 .cta{display:flex;gap:18px;align-items:center;margin-top:20px;font-weight:600}
 .cta a.gh{color:var(--ink)}
 .works{margin-top:30px;color:var(--ink-2);font-size:.95rem}
+.news{display:inline-flex;align-items:center;gap:10px;max-width:100%;margin:0 0 22px;padding:5px 14px 5px 5px;border:1px solid var(--rule);border-radius:999px;background:var(--paper);color:var(--ink);text-decoration:none;font-size:.92rem;line-height:1.35}
+.news span{flex:none;background:var(--tide-soft);color:var(--tide);font-weight:600;padding:3px 10px;border-radius:999px}
+.news:hover{border-color:var(--tide)}
 
 /* the scale ladder: the one memorable element */
-.ladder{background:var(--paper);border:1px solid var(--rule);border-radius:16px;padding:28px 28px 22px}
+.ladder{margin:0;background:var(--paper);border:1px solid var(--rule);border-radius:16px;padding:28px 28px 22px}
 .ladder h2{font-size:1rem;font-weight:600;margin:0 0 4px}
 .ladder .q{font-size:.9rem;color:var(--ink-2);margin:0 0 22px}
 .row{display:grid;grid-template-columns:52px 1fr 128px;align-items:center;gap:14px;margin:12px 0}
@@ -112,10 +213,33 @@ h2.sec{font-size:clamp(1.7rem,3vw,2.3rem);letter-spacing:-.015em;line-height:1.1
 .scroll{overflow-x:auto}
 .honest{margin-top:22px;color:var(--ink-2);max-width:var(--measure)}
 
+.faq{max-width:78ch;border-top:1px solid var(--rule)}
+.faq details{border-bottom:1px solid var(--rule)}
+.faq summary{cursor:pointer;list-style:none;padding:18px 36px 18px 0;font-weight:600;font-size:1.08rem;position:relative}
+.faq summary::-webkit-details-marker{display:none}
+.faq summary::after{content:"+";position:absolute;right:6px;top:14px;font:400 1.5rem "IBM Plex Mono",monospace;color:var(--tide)}
+.faq details[open] summary::after{content:"\2212"}
+.faq summary:focus-visible{outline:3px solid var(--giant);outline-offset:3px;border-radius:4px}
+.faq p{margin:0 0 18px;color:var(--ink-2)}
+
+.help{display:grid;grid-template-columns:minmax(0,1.1fr) minmax(0,1fr);gap:48px;align-items:start}
+.road{margin:0;padding:0;list-style:none;counter-reset:r}
+.road li{position:relative;padding:12px 0 12px 40px;border-bottom:1px solid var(--rule)}
+.road li:last-child{border-bottom:0}
+.road li::before{counter-increment:r;content:counter(r);position:absolute;left:0;top:12px;width:26px;height:26px;border-radius:50%;background:var(--giant-soft);color:var(--giant);font:600 .85rem "IBM Plex Mono",monospace;display:grid;place-items:center}
+.join{background:var(--paper);border:1px solid var(--rule);border-radius:16px;padding:26px}
+.join h3{margin:0 0 8px;font-size:1.15rem}
+.join p{margin:0 0 16px;color:var(--ink-2)}
+.join .links{display:flex;flex-wrap:wrap;gap:10px;margin-bottom:20px}
+.join .links a{display:inline-block;padding:9px 14px;border-radius:8px;border:1px solid var(--rule);text-decoration:none;font-weight:600;color:var(--ink)}
+.join .links a.primary{background:var(--ink);color:var(--paper);border-color:var(--ink)}
+.join img{display:block;max-width:100%;height:auto}
+
+.flinks{display:flex;flex-wrap:wrap;gap:6px 16px}
 footer{padding:40px 0 60px;border-top:1px solid var(--rule);color:var(--ink-2);font-size:.95rem;display:flex;justify-content:space-between;gap:20px;flex-wrap:wrap}
 
 @media (max-width:900px){
-  .hero,.fix{grid-template-columns:1fr;gap:36px}
+  .hero,.fix,.help{grid-template-columns:minmax(0,1fr);gap:36px}
   .steps{grid-template-columns:1fr;border-left:0}
   .steps li{border-right:0;border-bottom:1px solid var(--rule);padding:14px 0}
   .tools{columns:1}
@@ -142,6 +266,7 @@ footer{padding:40px 0 60px;border-top:1px solid var(--rule);color:var(--ink-2);f
     <a href="#fix">Auto-fix</a>
     <a href="#install">Install</a>
     <a href="#compare">Compare</a>
+    <a href="#faq">FAQ</a>
     <a href="https://github.com/laaielichter/Gulliver">GitHub</a>
   </nav>
 </header>
@@ -149,6 +274,7 @@ footer{padding:40px 0 60px;border-top:1px solid var(--rule);color:var(--ink-2);f
 <main id="top">
 <div class="hero">
   <div>
+    <a class="news" href="https://github.com/laaielichter/Gulliver/blob/main/CHANGELOG.md"><span>New in 0.2.0</span> It rewrites slow SQL, with a same-rows guarantee</a>
     <h1>Test on tiny data before you run on giant data.</h1>
     <p class="lede">Gulliver is an MCP server and CLI that gives AI agents a dress rehearsal for SQL. It estimates the cost, runs the query on 1%, 3% and 10% of the data, predicts the full run, and only lets it run inside your budget.</p>
     <div class="install">
@@ -159,7 +285,7 @@ footer{padding:40px 0 60px;border-top:1px solid var(--rule);color:var(--ink-2);f
       <a class="gh" href="https://github.com/laaielichter/Gulliver">View on GitHub</a>
       <a href="#install">Set up your agent</a>
     </div>
-    <p class="works">Works with Claude Code, Codex, Cursor, Gemini CLI, Claude Desktop, VS Code and any MCP client. Open source, MIT, runs on your machine.</p>
+    <p class="works">Works with Claude Code, Codex, Cursor, Gemini CLI, Claude Desktop, VS Code, Windsurf and any MCP client. Open source, MIT, runs on your machine.</p>
   </div>
 
   <figure class="ladder" id="ladder" aria-labelledby="ladder-title">
@@ -224,7 +350,8 @@ footer{padding:40px 0 60px;border-top:1px solid var(--rule);color:var(--ink-2);f
   <div class="tabs" role="tablist" aria-label="Agent">
     <button role="tab" aria-selected="true" aria-controls="p-claude" id="t-claude">Claude Code</button>
     <button role="tab" aria-selected="false" aria-controls="p-codex" id="t-codex" tabindex="-1">Codex CLI</button>
-    <button role="tab" aria-selected="false" aria-controls="p-json" id="t-json" tabindex="-1">Cursor, Claude Desktop, Gemini CLI</button>
+    <button role="tab" aria-selected="false" aria-controls="p-json" id="t-json" tabindex="-1">Claude Desktop, Cursor, Windsurf, Gemini CLI</button>
+    <button role="tab" aria-selected="false" aria-controls="p-vscode" id="t-vscode" tabindex="-1">VS Code</button>
     <button role="tab" aria-selected="false" aria-controls="p-cli" id="t-cli" tabindex="-1">CLI only</button>
   </div>
   <div class="panel" role="tabpanel" id="p-claude" aria-labelledby="t-claude"><pre><code>claude mcp add gulliver -- uvx gulliver-mcp --dsn /abs/path/data.duckdb
@@ -244,6 +371,16 @@ args = ["gulliver-mcp", "--config", "/abs/path/gulliver.toml"]</code></pre></div
     }
   }
 }</code></pre><p>Prefer npm? Use <code>"command": "npx", "args": ["-y", "gulliver-mcp", ...]</code>. It needs uv on the machine.</p></div>
+  <div class="panel" role="tabpanel" id="p-vscode" aria-labelledby="t-vscode" hidden><pre><code>// .vscode/mcp.json
+{
+  "servers": {
+    "gulliver": {
+      "type": "stdio",
+      "command": "uvx",
+      "args": ["gulliver-mcp", "--config", "/abs/path/gulliver.toml"]
+    }
+  }
+}</code></pre></div>
   <div class="panel" role="tabpanel" id="p-cli" aria-labelledby="t-cli" hidden><pre><code>pip install gulliver-mcp
 gulliver demo
 gulliver --dsn gulliver_demo.duckdb preflight "select country, count(*) from users group by 1"
@@ -280,11 +417,50 @@ gulliver tools --format openai   # function definitions for any API</code></pre>
   </div>
   <p class="honest">What Gulliver does not do: run your pipelines, replace dbt, or host anything for you. There is no Databricks or ClickHouse engine yet, and BigQuery and Snowflake have only been tested against fakes so far.</p>
 </section>
+
+<section id="faq" aria-labelledby="faq-h">
+  <h2 class="sec" id="faq-h">Questions people ask</h2>
+  <p class="sub">Short answers. The <a href="https://github.com/laaielichter/Gulliver#readme">README</a> has the details.</p>
+  <div class="faq">
+    <details><summary>Does Gulliver send my data or my SQL anywhere?</summary><p>No. It runs on your machine and only talks to the databases you configure. Receipts, the spend ledger and approvals are JSON files in <code>./.gulliver/</code>. There is no telemetry.</p></details>
+    <details><summary>Do I need a warehouse to try it?</summary><p>No. <code>gulliver demo</code> builds a DuckDB database with 5 million events in seconds, and <code>gulliver lint</code> works without any database at all.</p></details>
+    <details><summary>Which agents and models does it work with?</summary><p>Any MCP client: Claude Code, Codex, Cursor, Gemini CLI, Claude Desktop, VS Code, Windsurf. Without MCP, use the CLI with <code>--json</code>, or <code>gulliver tools --format openai</code> (or <code>gemini</code>) for function calling. Every answer is short JSON with a <code>status</code> and a <code>next_step</code>, so smaller models can follow the loop too.</p></details>
+    <details><summary>How accurate is the prediction?</summary><p>It is a growth curve fitted on three samples, so it comes with a confidence level and a range (x0.7 to 1.5 when confidence is high, up to x0.25 to 4 when it is low). On BigQuery the money estimate uses the exact dry-run bytes of the full query. After a real run, the receipt shows predicted versus actual. Joins and skewed data can grow faster than the data; Gulliver flags that instead of hiding it.</p></details>
+    <details><summary>Can the agent change or delete data?</summary><p>Not by default. Only <code>SELECT</code> runs. Writes (CREATE TABLE AS SELECT, INSERT SELECT) need both the call and a human-set <code>allow_write</code> on the connection, and the agent cannot approve its own runs.</p></details>
+    <details><summary>How is this different from EXPLAIN or a BigQuery dry run?</summary><p>Gulliver uses those for the preflight. On top of that it rehearses on samples to show how runtime and output rows grow, rewrites slow SQL with a stated guarantee, enforces a budget, and writes a receipt, in one JSON format across four engines.</p></details>
+    <details><summary>Is it ready for production on BigQuery and Snowflake?</summary><p>Not yet. Both are beta and have been tested against fakes, not live accounts. DuckDB and Postgres are tested in CI, Postgres against a live server. Reports from real warehouses are very welcome.</p></details>
+  </div>
+</section>
+
+<section id="help" aria-labelledby="help-h">
+  <div class="help">
+    <div>
+      <h2 class="sec" id="help-h">What comes next</h2>
+      <p class="sub">Ideas, not promises. Each one is open for help.</p>
+      <ol class="road">
+        <li>Live tests for BigQuery and Snowflake, so they can leave beta.</li>
+        <li>More same-rows rewrites, such as <code>DATE_TRUNC('quarter', ts)</code> (<a href="https://github.com/laaielichter/Gulliver/issues/4">#4</a>).</li>
+        <li>A lint rule for <code>LIKE</code> with a leading wildcard (<a href="https://github.com/laaielichter/Gulliver/issues/5">#5</a>).</li>
+        <li>Databricks and ClickHouse engines.</li>
+      </ol>
+    </div>
+    <div class="join">
+      <h3>Help build it</h3>
+      <p>Gulliver is young and the issues are small and well described. Seen an agent's SQL go wrong at scale? That example can become the next lint rule.</p>
+      <div class="links">
+        <a class="primary" href="https://github.com/laaielichter/Gulliver/issues?q=is%3Aissue+is%3Aopen+label%3A%22good+first+issue%22">Good first issues</a>
+        <a href="https://github.com/laaielichter/Gulliver/issues/new/choose">Share a case</a>
+        <a href="https://github.com/laaielichter/Gulliver/blob/main/CONTRIBUTING.md">Contributing guide</a>
+      </div>
+      <a href="https://github.com/laaielichter/Gulliver/graphs/contributors"><img src="https://contrib.rocks/image?repo=laaielichter/Gulliver" alt="People who contributed to Gulliver" loading="lazy"></a>
+    </div>
+  </div>
+</section>
 </main>
 
 <footer>
   <span>Gulliver is MIT licensed. Built by <a href="https://github.com/laaielichter">laaielichter</a>.</span>
-  <span><a href="https://pypi.org/project/gulliver-mcp/">PyPI</a> &nbsp; <a href="https://www.npmjs.com/package/gulliver-mcp">npm</a> &nbsp; <a href="https://github.com/laaielichter/Gulliver/blob/main/CONTRIBUTING.md">Contribute</a></span>
+  <span class="flinks"><a href="https://github.com/laaielichter/Gulliver">GitHub</a> <a href="https://pypi.org/project/gulliver-mcp/">PyPI</a> <a href="https://www.npmjs.com/package/gulliver-mcp">npm</a> <a href="https://github.com/laaielichter/Gulliver/blob/main/CHANGELOG.md">Changelog</a> <a href="https://github.com/laaielichter/Gulliver/blob/main/CONTRIBUTING.md">Contribute</a> <a href="https://github.com/laaielichter/Gulliver/blob/main/SECURITY.md">Security</a></span>
 </footer>
 </div>
 

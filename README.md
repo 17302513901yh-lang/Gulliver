@@ -7,25 +7,32 @@
 <h1 align="center">Gulliver</h1>
 
 <p align="center"><b>Test on tiny data before you run on giant data.</b><br>
-An MCP server and CLI that gives AI agents a dress rehearsal for SQL: estimate the cost, rehearse on 1% → 3% → 10% of the data, predict what 100% will do, and only run the full query inside a budget.</p>
+An open-source MCP server and CLI that gives AI agents a dress rehearsal for SQL: estimate the cost, fix the slow parts, rehearse on 1% → 3% → 10% of the data, predict what 100% will do, and only run the full query inside a budget.</p>
 
 <p align="center">
-  <a href="https://github.com/laaielichter/gulliver/actions/workflows/ci.yml"><img src="https://github.com/laaielichter/gulliver/actions/workflows/ci.yml/badge.svg" alt="CI"></a>
-  <a href="https://pypi.org/project/gulliver-mcp/"><img src="https://img.shields.io/pypi/v/gulliver-mcp" alt="PyPI"></a>
-  <a href="https://www.npmjs.com/package/gulliver-mcp"><img src="https://img.shields.io/npm/v/gulliver-mcp" alt="npm"></a>
-  <img src="https://img.shields.io/badge/license-MIT-blue" alt="MIT license">
-  <img src="https://img.shields.io/badge/python-3.10%2B-blue" alt="Python 3.10+">
+  <a href="https://github.com/laaielichter/Gulliver/actions/workflows/ci.yml"><img src="https://github.com/laaielichter/Gulliver/actions/workflows/ci.yml/badge.svg" alt="CI"></a>
+  <a href="https://pypi.org/project/gulliver-mcp/"><img src="https://img.shields.io/pypi/v/gulliver-mcp?label=pypi" alt="PyPI version"></a>
+  <a href="https://www.npmjs.com/package/gulliver-mcp"><img src="https://img.shields.io/npm/v/gulliver-mcp?label=npm" alt="npm version"></a>
+  <img src="https://img.shields.io/badge/python-3.10%20%E2%80%93%203.13-blue" alt="Python 3.10 to 3.13">
+  <a href="https://github.com/laaielichter/Gulliver/blob/main/LICENSE"><img src="https://img.shields.io/badge/license-MIT-blue" alt="MIT license"></a>
+  <a href="https://github.com/laaielichter/Gulliver/issues?q=is%3Aissue+is%3Aopen+label%3A%22good+first+issue%22"><img src="https://img.shields.io/github/issues/laaielichter/Gulliver/good%20first%20issue?label=good%20first%20issues&color=7057ff" alt="Good first issues"></a>
 </p>
 
 <p align="center">
   <a href="https://laaielichter.github.io/Gulliver/">Website</a> ·
   <a href="#quick-start-2-minutes-no-warehouse-needed">Quick start</a> ·
-  <a href="#use-it-from-your-agent-mcp">Add to your agent</a> ·
+  <a href="#install-the-mcp-server">Install</a> ·
   <a href="#auto-fix">Auto-fix</a> ·
-  <a href="#how-it-compares">Compare</a>
+  <a href="#how-it-compares">Compare</a> ·
+  <a href="#faq">FAQ</a> ·
+  <a href="#roadmap">Roadmap</a>
 </p>
 
-<p align="center">Works with <b>Claude Code</b>, <b>Codex</b>, <b>Cursor</b>, <b>Gemini CLI</b>, Claude Desktop, VS Code and any MCP client, on <b>DuckDB</b>, <b>Postgres</b>, <b>BigQuery</b> and <b>Snowflake</b>.</p>
+<p align="center">Works with <b>Claude Code</b>, <b>Codex</b>, <b>Cursor</b>, <b>Gemini CLI</b>, Claude Desktop, VS Code, Windsurf and any MCP client, on <b>DuckDB</b>, <b>Postgres</b>, <b>BigQuery</b> and <b>Snowflake</b>.</p>
+
+> **New in 0.2.0:** `gulliver_fix` rewrites slow SQL for the agent and labels every change. "Same rows" is only
+> promised when Gulliver has checked the column types. Also new: run it with `npx -y gulliver-mcp`, and the Claude Code
+> plugin installs straight from PyPI. See the [changelog](https://github.com/laaielichter/Gulliver/blob/main/CHANGELOG.md).
 
 ![Gulliver rehearses a self-join on 1%, 3% and 10% of a 5-million-row table, predicts about 120 million output rows, then rewrites a date filter with the same rows](https://raw.githubusercontent.com/laaielichter/Gulliver/main/docs/demo.svg)
 
@@ -100,30 +107,37 @@ Growth exponent output_rows: 1.77 -> grows faster than the data
 Add `--json` to any command for machine-readable output. Exit codes: `0` ok, `1` error, `2` blocked,
 `3` needs rehearsal or approval, `4` a data check failed, so it also works as a CI check.
 
-## Use it from your agent (MCP)
+## Install the MCP server
 
-Gulliver is an MCP server (stdio or Streamable HTTP), published on PyPI and npm. Run it with
-[uv](https://docs.astral.sh/uv/), or through npx (which uses uv under the hood):
+Gulliver is an MCP server (stdio or Streamable HTTP), published on [PyPI](https://pypi.org/project/gulliver-mcp/)
+and [npm](https://www.npmjs.com/package/gulliver-mcp). Run it with [uv](https://docs.astral.sh/uv/), or through npx
+(which uses uv under the hood):
 
 ```bash
 uvx gulliver-mcp --dsn path/to/warehouse.duckdb
 npx -y gulliver-mcp --dsn path/to/warehouse.duckdb
 ```
 
-**Claude Code**
+Point it at a database with `--dsn`, or at a [`gulliver.toml`](#configuration) with connections and budgets
+(`--config`). No warehouse yet? Run `gulliver demo` and use `gulliver_demo.duckdb`.
+
+### Claude Code
 
 ```bash
 claude mcp add gulliver -- uvx gulliver-mcp --dsn /abs/path/data.duckdb
 ```
 
-Or install it as a plugin (MCP server + skill):
+Or install it as a plugin, which adds the MCP server and a skill with the rehearsal workflow:
 
 ```
 /plugin marketplace add laaielichter/gulliver
 /plugin install gulliver@gulliver
 ```
 
-**Claude Desktop, Cursor, Windsurf, VS Code and other MCP clients** (JSON config):
+### Claude Desktop, Cursor and Windsurf
+
+Add this to the client's MCP config (`claude_desktop_config.json`, `~/.cursor/mcp.json` or
+`~/.codeium/windsurf/mcp_config.json`):
 
 ```json
 {
@@ -136,7 +150,25 @@ Or install it as a plugin (MCP server + skill):
 }
 ```
 
-**Codex CLI** (`~/.codex/config.toml`):
+### VS Code
+
+In `.vscode/mcp.json`:
+
+```json
+{
+  "servers": {
+    "gulliver": {
+      "type": "stdio",
+      "command": "uvx",
+      "args": ["gulliver-mcp", "--config", "/abs/path/gulliver.toml"]
+    }
+  }
+}
+```
+
+### Codex CLI
+
+In `~/.codex/config.toml`:
 
 ```toml
 [mcp_servers.gulliver]
@@ -144,12 +176,18 @@ command = "uvx"
 args = ["gulliver-mcp", "--config", "/abs/path/gulliver.toml"]
 ```
 
-**Gemini CLI** (`~/.gemini/settings.json`): same `mcpServers` block as above.
+### Gemini CLI
 
-**Any HTTP client or remote agent:** `gulliver-mcp --http --port 8765` serves `http://127.0.0.1:8765/mcp`.
+In `~/.gemini/settings.json`, the same `mcpServers` block as for Claude Desktop above.
 
-**No MCP?** Every tool is also a CLI command with `--json`, and `gulliver tools --format openai` or
-`--format gemini` prints ready-made function-calling definitions for the OpenAI or Gemini APIs.
+### Any HTTP client or remote agent
+
+`gulliver-mcp --http --port 8765` serves `http://127.0.0.1:8765/mcp` (Streamable HTTP).
+
+### Without MCP: OpenAI and Gemini function calling
+
+Every tool is also a CLI command with `--json`, and `gulliver tools --format openai` or `--format gemini` prints
+ready-made function-calling definitions for the OpenAI or Gemini APIs.
 
 ## How it compares
 
@@ -182,7 +220,7 @@ Every estimate says how much to trust it: `exact`, `upper_bound` or `heuristic`.
 
 ## Configuration
 
-Copy [`gulliver.example.toml`](gulliver.example.toml) to `gulliver.toml`:
+Copy [`gulliver.example.toml`](https://github.com/laaielichter/Gulliver/blob/main/gulliver.example.toml) to `gulliver.toml`:
 
 ```toml
 default_connection = "local"
@@ -406,17 +444,70 @@ Exit codes: `0` ok, `1` error, `2` blocked, `3` needs rehearsal or approval, `4`
 
 SQL can be an argument, `-f file.sql`, or `-` for stdin. Global flags: `--dsn`, `--config`, `-c NAME`, `--json`.
 
-## Development
+## FAQ
+
+**Does Gulliver send my data or my SQL anywhere?**
+No. It runs on your machine and only talks to the databases you configure. Receipts, the spend ledger and
+approvals are JSON files in `./.gulliver/`. There is no telemetry.
+
+**Do I need a warehouse to try it?**
+No. `gulliver demo` builds a DuckDB database with 5 million events in seconds, and `gulliver lint` works without
+any database at all.
+
+**Which agents and models does it work with?**
+Any MCP client: Claude Code, Codex, Cursor, Gemini CLI, Claude Desktop, VS Code, Windsurf. Without MCP, use the CLI
+with `--json`, or `gulliver tools --format openai|gemini` for function calling. Every answer is short JSON with a
+`status` and a `next_step`, so smaller models can follow the loop too.
+
+**How accurate is the prediction?**
+It is a growth curve fitted on three samples, so it comes with a confidence level and a range (x0.7-1.5 when
+confidence is high, up to x0.25-4 when it is low). On BigQuery the money estimate uses the exact dry-run bytes of the
+full query. After a real run, the receipt shows predicted versus actual. Joins and skewed data can grow faster than
+the data; Gulliver flags that (growth exponent above 1.3) instead of hiding it.
+
+**Can the agent change or delete data?**
+Not by default. Only `SELECT` runs. Writes (`CREATE TABLE ... AS SELECT`, `INSERT ... SELECT`) need both the call
+and a human-set `allow_write = true` on the connection, and the agent cannot approve its own runs.
+
+**How is this different from `EXPLAIN` or a BigQuery dry run?**
+Gulliver uses those for the preflight. On top of that it rehearses on samples to show how runtime and output rows
+grow, rewrites slow SQL with a stated guarantee, enforces a budget, and writes a receipt, in one JSON format across
+four engines.
+
+**Is it ready for production on BigQuery and Snowflake?**
+Not yet. Both are beta and have been tested against fakes, not live accounts. DuckDB and Postgres are tested in CI,
+Postgres against a live server. Reports from real warehouses are very welcome.
+
+## Roadmap
+
+Ideas for what comes next, not promises. Each one is open for help:
+
+- Live tests for BigQuery and Snowflake, so they can leave beta.
+- More same-rows rewrites in `gulliver_fix`, such as `DATE_TRUNC('quarter', ts)` ([#4](https://github.com/laaielichter/Gulliver/issues/4)).
+- A new lint rule for `LIKE` with a leading wildcard ([#5](https://github.com/laaielichter/Gulliver/issues/5)).
+- Databricks and ClickHouse engines.
+
+Have a case where an agent's SQL went wrong at scale? [Open an issue](https://github.com/laaielichter/Gulliver/issues/new/choose).
+Real examples shape the next lint rules.
+
+## Contributing
 
 ```bash
-git clone https://github.com/laaielichter/gulliver && cd gulliver
+git clone https://github.com/laaielichter/Gulliver && cd Gulliver
 pip install -e ".[dev]"
 pytest
 ```
 
-Contributions are welcome: see [CONTRIBUTING.md](CONTRIBUTING.md) and the [Code of Conduct](CODE_OF_CONDUCT.md).
-See [AGENTS.md](AGENTS.md) for the agent-facing guide and [SECURITY.md](SECURITY.md) to report a vulnerability.
+Contributions are welcome. Start with a [good first issue](https://github.com/laaielichter/Gulliver/issues?q=is%3Aissue+is%3Aopen+label%3A%22good+first+issue%22),
+and read [CONTRIBUTING.md](https://github.com/laaielichter/Gulliver/blob/main/CONTRIBUTING.md) and the
+[Code of Conduct](https://github.com/laaielichter/Gulliver/blob/main/CODE_OF_CONDUCT.md).
+See [AGENTS.md](https://github.com/laaielichter/Gulliver/blob/main/AGENTS.md) for the agent-facing guide and
+[SECURITY.md](https://github.com/laaielichter/Gulliver/blob/main/SECURITY.md) to report a vulnerability.
+
+Thanks to everyone who helps:
+
+<a href="https://github.com/laaielichter/Gulliver/graphs/contributors"><img src="https://contrib.rocks/image?repo=laaielichter/Gulliver" alt="Contributors to Gulliver"></a>
 
 ## License
 
-MIT, see [LICENSE](LICENSE).
+MIT, see [LICENSE](https://github.com/laaielichter/Gulliver/blob/main/LICENSE).
