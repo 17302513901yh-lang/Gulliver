@@ -1,5 +1,9 @@
 # Changelog
 
+## Unreleased
+
+- `gulliver fix -o/--output PATH`: write rewritten SQL to a file when there are changes ([#6](https://github.com/laaielichter/Gulliver/issues/6)).
+
 ## 0.2.0 - 2026-11-02
 
 - New `gulliver_fix` (MCP) / `gulliver fix` (CLI): rewrites SQL to be cheaper and labels every change with a

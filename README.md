@@ -384,7 +384,7 @@ own tables, so there the estimate stays the same.
 gulliver status                       connections, budget, spend today
 gulliver inspect [TABLE]              biggest tables, or one table's columns
 gulliver lint SQL [--dialect D]       scale lint only
-gulliver fix SQL [--dialect D] [--mode safe|all] [--limit N]   rewrite SQL, say what changes
+gulliver fix SQL [--dialect D] [--mode safe|all] [--limit N] [-o PATH]   rewrite SQL, say what changes
 gulliver preflight SQL                estimate + lint + gate, no execution
 gulliver rehearse SQL [--fractions 0.01,0.03,0.1] [--sample largest|all] [--method auto|system|bernoulli]
 gulliver run SQL [--max-rows N] [--allow-write]

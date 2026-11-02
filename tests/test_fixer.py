@@ -253,13 +253,24 @@ def test_preflight_hands_over_the_fixed_sql(settings):
     assert "autofix" not in core.lint_sql("select a from t where year(ts) = 2024", "duckdb")
 
 
-def test_cli_fix(demo_db, state, capsys):
+def test_cli_fix(demo_db, state, capsys, tmp_path):
     assert main(["--dsn", demo_db, "fix", "select count(*) from events where date(ts) = '2025-01-02'"]) == 0
     text = capsys.readouterr().out
     assert "returns exactly the same rows" in text and "ts >= '2025-01-02'" in text
     assert main(["fix", "--json", "--dialect", "bigquery", "--mode", "all", "SELECT * FROM t"]) == 0
     data = json.loads(capsys.readouterr().out)
     assert data["changes"][0]["rule"] == "GV002"
+    out = tmp_path / "model.fixed.sql"
+    assert main(["--dsn", demo_db, "fix", "-o", str(out),
+                 "select count(*) from events where date(ts) = '2025-01-02'"]) == 0
+    listed = capsys.readouterr().out
+    assert "returns exactly the same rows" in listed and out.is_file()
+    assert "ts >= '2025-01-02'" in out.read_text()
+    # no changes → do not create/overwrite the output file
+    empty = tmp_path / "unchanged.sql"
+    assert main(["fix", "--dialect", "duckdb", "-o", str(empty), "select count(*) from events"]) == 0
+    assert "Nothing to rewrite" in capsys.readouterr().out
+    assert not empty.exists()
 
 
 def test_mcp_fix_tool(demo_db, state, monkeypatch):
