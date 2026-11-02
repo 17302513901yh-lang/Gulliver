@@ -5,18 +5,25 @@
   "author": {
     "name": "laaielichter"
   },
-  "homepage": "https://github.com/laaielichter/gulliver",
+  "homepage": "https://laaielichter.github.io/Gulliver/",
   "repository": "https://github.com/laaielichter/gulliver",
   "license": "MIT",
   "keywords": [
-    "sql",
-    "data-engineering",
-    "cost",
-    "duckdb",
+    "agent-tools",
     "bigquery",
-    "snowflake",
+    "claude-code",
+    "codex",
+    "cost",
+    "cursor",
+    "data-engineering",
+    "dbt",
+    "duckdb",
+    "gemini-cli",
+    "mcp",
     "postgres",
-    "mcp"
+    "snowflake",
+    "sql",
+    "sql-linter"
   ],
   "skills": "./skills/",
   "mcpServers": {

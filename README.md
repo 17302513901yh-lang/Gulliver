@@ -1,16 +1,31 @@
-# Gulliver
-
 <!-- mcp-name: io.github.laaielichter/gulliver -->
 
-**Test on tiny data before you run on giant data.**
+<p align="center">
+  <a href="https://laaielichter.github.io/Gulliver/"><img src="https://raw.githubusercontent.com/laaielichter/Gulliver/main/docs/og.png" alt="Gulliver: test on tiny data before you run on giant data. A rehearsal on 1%, 3% and 10% predicts about 120 million rows at 100%." width="760"></a>
+</p>
 
-Gulliver gives AI agents a dress rehearsal for SQL: estimate the cost, rehearse on 1% → 3% → 10% of the data, predict what 100% will do, and only run the full query inside a budget. Local-first, open source, MCP + CLI for any agent and any LLM.
+<h1 align="center">Gulliver</h1>
 
-[![ci](https://github.com/laaielichter/gulliver/actions/workflows/ci.yml/badge.svg)](https://github.com/laaielichter/gulliver/actions/workflows/ci.yml)
-[![PyPI](https://img.shields.io/pypi/v/gulliver-mcp)](https://pypi.org/project/gulliver-mcp/)
-[![npm](https://img.shields.io/npm/v/gulliver-mcp)](https://www.npmjs.com/package/gulliver-mcp)
-![license](https://img.shields.io/badge/license-MIT-blue)
-![python](https://img.shields.io/badge/python-3.10%2B-blue)
+<p align="center"><b>Test on tiny data before you run on giant data.</b><br>
+An MCP server and CLI that gives AI agents a dress rehearsal for SQL: estimate the cost, rehearse on 1% → 3% → 10% of the data, predict what 100% will do, and only run the full query inside a budget.</p>
+
+<p align="center">
+  <a href="https://github.com/laaielichter/gulliver/actions/workflows/ci.yml"><img src="https://github.com/laaielichter/gulliver/actions/workflows/ci.yml/badge.svg" alt="CI"></a>
+  <a href="https://pypi.org/project/gulliver-mcp/"><img src="https://img.shields.io/pypi/v/gulliver-mcp" alt="PyPI"></a>
+  <a href="https://www.npmjs.com/package/gulliver-mcp"><img src="https://img.shields.io/npm/v/gulliver-mcp" alt="npm"></a>
+  <img src="https://img.shields.io/badge/license-MIT-blue" alt="MIT license">
+  <img src="https://img.shields.io/badge/python-3.10%2B-blue" alt="Python 3.10+">
+</p>
+
+<p align="center">
+  <a href="https://laaielichter.github.io/Gulliver/">Website</a> ·
+  <a href="#quick-start-2-minutes-no-warehouse-needed">Quick start</a> ·
+  <a href="#use-it-from-your-agent-mcp">Add to your agent</a> ·
+  <a href="#auto-fix">Auto-fix</a> ·
+  <a href="#how-it-compares">Compare</a>
+</p>
+
+<p align="center">Works with <b>Claude Code</b>, <b>Codex</b>, <b>Cursor</b>, <b>Gemini CLI</b>, Claude Desktop, VS Code and any MCP client, on <b>DuckDB</b>, <b>Postgres</b>, <b>BigQuery</b> and <b>Snowflake</b>.</p>
 
 ![Gulliver rehearses a self-join on 1%, 3% and 10% of a 5-million-row table, predicts about 120 million output rows, then rewrites a date filter with the same rows](https://raw.githubusercontent.com/laaielichter/Gulliver/main/docs/demo.svg)
 

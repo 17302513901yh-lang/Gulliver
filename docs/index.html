@@ -1,0 +1,318 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Gulliver: test agent SQL on tiny data before it runs on giant data</title>
+<meta name="description" content="Gulliver is an open-source MCP server and CLI that lets AI agents estimate the cost of SQL, rehearse it on 1%, 3% and 10% samples, predict the full run and only run it inside a budget. DuckDB, Postgres, BigQuery, Snowflake.">
+<meta property="og:title" content="Gulliver: a dress rehearsal for agent SQL">
+<meta property="og:description" content="Estimate the cost, rehearse on 1% of the data, predict 100%, and only run inside a budget. MCP server + CLI for Claude Code, Codex, Cursor, Gemini CLI and any agent.">
+<meta property="og:image" content="https://laaielichter.github.io/Gulliver/og.png">
+<meta property="og:url" content="https://laaielichter.github.io/Gulliver/">
+<meta name="twitter:card" content="summary_large_image">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect x='3' y='20' width='4' height='9' fill='%232F7D6D'/%3E%3Crect x='10' y='14' width='4' height='15' fill='%232F7D6D'/%3E%3Crect x='17' y='8' width='4' height='21' fill='%232F7D6D'/%3E%3Crect x='24' y='2' width='5' height='27' fill='none' stroke='%23B5781C' stroke-width='2' stroke-dasharray='3 2'/%3E%3C/svg%3E">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Familjen+Grotesk:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+:root{
+  --sea:#EDF1EF; --paper:#F8FAF9; --ink:#17283A; --ink-2:#4A5C6B; --rule:#C9D3CF;
+  --tide:#2F7D6D; --tide-soft:#D6E8E3; --giant:#B5781C; --giant-soft:#F3E5CC; --code:#E3EAE7;
+  --measure:68ch;
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --sea:#0F1C27; --paper:#14232F; --ink:#E4ECEA; --ink-2:#9FB1B9; --rule:#2A3D4B;
+    --tide:#5DB7A3; --tide-soft:#1B3A38; --giant:#E0A54A; --giant-soft:#3A2E1A; --code:#1A2C38;
+  }
+}
+:root[data-theme="dark"]{
+  --sea:#0F1C27; --paper:#14232F; --ink:#E4ECEA; --ink-2:#9FB1B9; --rule:#2A3D4B;
+  --tide:#5DB7A3; --tide-soft:#1B3A38; --giant:#E0A54A; --giant-soft:#3A2E1A; --code:#1A2C38;
+}
+*{box-sizing:border-box}
+html{-webkit-text-size-adjust:100%}
+body{margin:0;background:var(--sea);color:var(--ink);font:400 1.0625rem/1.6 "Familjen Grotesk",system-ui,sans-serif}
+a{color:var(--tide);text-underline-offset:.18em}
+a:focus-visible,button:focus-visible{outline:3px solid var(--giant);outline-offset:3px;border-radius:4px}
+code,pre,.mono{font-family:"IBM Plex Mono",ui-monospace,monospace;font-size:.9em}
+.wrap{max-width:1120px;margin:0 auto;padding:0 24px}
+header.top{display:flex;align-items:center;justify-content:space-between;padding:22px 0}
+.brand{display:flex;align-items:center;gap:10px;font-weight:700;font-size:1.15rem;color:var(--ink);text-decoration:none}
+.top nav{display:flex;gap:22px;font-size:.98rem}
+.top nav a{color:var(--ink-2);text-decoration:none}
+.top nav a:hover{color:var(--ink)}
+
+/* hero */
+.hero{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1.05fr);gap:56px;align-items:center;padding:48px 0 72px}
+h1{font-size:clamp(2.4rem,5.2vw,4.1rem);line-height:1.02;letter-spacing:-.025em;font-weight:700;margin:0 0 22px;max-width:14ch}
+.lede{font-size:1.2rem;color:var(--ink-2);max-width:46ch;margin:0 0 30px}
+.install{display:flex;align-items:center;gap:10px;background:var(--paper);border:1px solid var(--rule);border-radius:10px;padding:6px 6px 6px 16px;max-width:430px}
+.install code{flex:1;font-size:1rem;white-space:nowrap;overflow:auto}
+.install button{border:0;background:var(--ink);color:var(--paper);font:600 .92rem "Familjen Grotesk",sans-serif;padding:10px 14px;border-radius:7px;cursor:pointer}
+.cta{display:flex;gap:18px;align-items:center;margin-top:20px;font-weight:600}
+.cta a.gh{color:var(--ink)}
+.works{margin-top:30px;color:var(--ink-2);font-size:.95rem}
+
+/* the scale ladder: the one memorable element */
+.ladder{background:var(--paper);border:1px solid var(--rule);border-radius:16px;padding:28px 28px 22px}
+.ladder h2{font-size:1rem;font-weight:600;margin:0 0 4px}
+.ladder .q{font-size:.9rem;color:var(--ink-2);margin:0 0 22px}
+.row{display:grid;grid-template-columns:52px 1fr 128px;align-items:center;gap:14px;margin:12px 0}
+.row .f{font-weight:700;font-size:1.05rem}
+.track{height:30px;position:relative}
+.bar{position:absolute;inset:0 auto 0 0;width:0;background:var(--tide);border-radius:4px;transition:width 1.1s cubic-bezier(.2,.8,.2,1)}
+.row.pred .bar{background:var(--giant-soft);border:2px dashed var(--giant);transition-delay:.6s}
+.range{position:absolute;top:50%;height:2px;background:var(--giant);transform:translateY(-50%);opacity:0;transition:opacity .4s 1.6s}
+.row .n{font-family:"IBM Plex Mono",monospace;font-size:.92rem;text-align:right}
+.row.pred .n{color:var(--giant);font-weight:500}
+.verdict{margin:20px 0 0;padding-top:16px;border-top:1px solid var(--rule);font-size:.95rem}
+.verdict b{color:var(--giant)}
+.axis{font-size:.78rem;color:var(--ink-2);margin-top:6px}
+.go .bar{width:var(--w)}
+.go .range{opacity:1}
+
+/* sections */
+section{padding:76px 0;border-top:1px solid var(--rule)}
+h2.sec{font-size:clamp(1.7rem,3vw,2.3rem);letter-spacing:-.015em;line-height:1.12;margin:0 0 16px;max-width:24ch}
+.sub{color:var(--ink-2);max-width:var(--measure);margin:0 0 40px}
+.steps{list-style:none;padding:0;margin:0;display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:0;border-left:1px solid var(--rule)}
+.steps li{padding:4px 20px 8px;border-right:1px solid var(--rule)}
+.steps .k{font-family:"IBM Plex Mono",monospace;color:var(--tide);font-size:.9rem}
+.steps h3{margin:6px 0 8px;font-size:1.12rem}
+.steps p{margin:0;color:var(--ink-2);font-size:.97rem}
+.demo{background:#282c34;border-radius:14px;overflow:hidden;border:1px solid var(--rule)}
+.demo img{display:block;width:100%;height:auto}
+.cap{font-size:.9rem;color:var(--ink-2);margin-top:12px}
+
+.fix{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:48px;align-items:start}
+.diff{background:var(--paper);border:1px solid var(--rule);border-radius:12px;padding:20px 22px;font-family:"IBM Plex Mono",monospace;font-size:.93rem;line-height:1.75;overflow:auto}
+.diff .m{color:#B4483A} .diff .p{color:var(--tide)} .diff .c{color:var(--ink-2)}
+.guar{margin:0;padding:0;list-style:none}
+.guar li{padding:12px 0;border-bottom:1px solid var(--rule)}
+.guar li:last-child{border-bottom:0}
+.guar code{background:var(--code);padding:2px 7px;border-radius:5px}
+
+.tabs{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:-1px;position:relative}
+.tabs button{border:1px solid var(--rule);border-bottom:0;background:transparent;color:var(--ink-2);font:500 .95rem "Familjen Grotesk",sans-serif;padding:10px 16px;border-radius:8px 8px 0 0;cursor:pointer}
+.tabs button[aria-selected="true"]{background:var(--paper);color:var(--ink)}
+.panel{background:var(--paper);border:1px solid var(--rule);border-radius:0 12px 12px 12px;padding:22px}
+.panel pre{margin:0;overflow:auto;white-space:pre}
+.panel p{margin:12px 0 0;color:var(--ink-2);font-size:.95rem}
+
+.tools{columns:2;column-gap:48px}
+.tools div{break-inside:avoid;padding:10px 0;border-bottom:1px solid var(--rule)}
+.tools code{font-weight:500}
+.tools span{display:block;color:var(--ink-2);font-size:.96rem}
+
+.cmp{width:100%;border-collapse:collapse;font-size:.95rem}
+.cmp th,.cmp td{text-align:left;padding:12px 12px;border-bottom:1px solid var(--rule);vertical-align:top}
+.cmp thead th{font-weight:600;color:var(--ink-2)}
+.cmp td:nth-child(2),.cmp th:nth-child(2){background:var(--tide-soft)}
+.scroll{overflow-x:auto}
+.honest{margin-top:22px;color:var(--ink-2);max-width:var(--measure)}
+
+footer{padding:40px 0 60px;border-top:1px solid var(--rule);color:var(--ink-2);font-size:.95rem;display:flex;justify-content:space-between;gap:20px;flex-wrap:wrap}
+
+@media (max-width:900px){
+  .hero,.fix{grid-template-columns:1fr;gap:36px}
+  .steps{grid-template-columns:1fr;border-left:0}
+  .steps li{border-right:0;border-bottom:1px solid var(--rule);padding:14px 0}
+  .tools{columns:1}
+  .top nav{display:none}
+}
+@media (max-width:480px){
+  .wrap{padding:0 16px}
+  .row{grid-template-columns:40px 1fr 96px;gap:10px}
+  .row .n{font-size:.8rem}
+  .ladder{padding:20px 16px}
+}
+@media (prefers-reduced-motion:reduce){.bar,.range{transition:none}}
+</style>
+</head>
+<body>
+<div class="wrap">
+<header class="top">
+  <a class="brand" href="#top" aria-label="Gulliver home">
+    <svg width="26" height="26" viewBox="0 0 32 32" aria-hidden="true"><rect x="3" y="20" width="4" height="9" fill="var(--tide)"/><rect x="10" y="14" width="4" height="15" fill="var(--tide)"/><rect x="17" y="8" width="4" height="21" fill="var(--tide)"/><rect x="24" y="2" width="5" height="27" fill="none" stroke="var(--giant)" stroke-width="2" stroke-dasharray="3 2"/></svg>
+    Gulliver
+  </a>
+  <nav aria-label="Sections">
+    <a href="#how">How it works</a>
+    <a href="#fix">Auto-fix</a>
+    <a href="#install">Install</a>
+    <a href="#compare">Compare</a>
+    <a href="https://github.com/laaielichter/Gulliver">GitHub</a>
+  </nav>
+</header>
+
+<main id="top">
+<div class="hero">
+  <div>
+    <h1>Test on tiny data before you run on giant data.</h1>
+    <p class="lede">Gulliver is an MCP server and CLI that gives AI agents a dress rehearsal for SQL. It estimates the cost, runs the query on 1%, 3% and 10% of the data, predicts the full run, and only lets it run inside your budget.</p>
+    <div class="install">
+      <code id="cmd">uvx gulliver-mcp</code>
+      <button type="button" id="copy" aria-live="polite">Copy</button>
+    </div>
+    <div class="cta">
+      <a class="gh" href="https://github.com/laaielichter/Gulliver">View on GitHub</a>
+      <a href="#install">Set up your agent</a>
+    </div>
+    <p class="works">Works with Claude Code, Codex, Cursor, Gemini CLI, Claude Desktop, VS Code and any MCP client. Open source, MIT, runs on your machine.</p>
+  </div>
+
+  <figure class="ladder" id="ladder" aria-labelledby="ladder-title">
+    <h2 id="ladder-title">A rehearsal of an agent's self-join</h2>
+    <p class="q mono">events a join events b on user_id, 5 million rows</p>
+    <div class="row"><span class="f">1%</span><div class="track"><div class="bar" style="--w:14%"></div></div><span class="n">41,862 rows</span></div>
+    <div class="row"><span class="f">3%</span><div class="track"><div class="bar" style="--w:30%"></div></div><span class="n">214,092 rows</span></div>
+    <div class="row"><span class="f">10%</span><div class="track"><div class="bar" style="--w:53%"></div></div><span class="n">2.3 M rows</span></div>
+    <div class="row pred"><span class="f">100%</span><div class="track"><div class="bar" style="--w:91%"></div><div class="range" style="left:84%;width:13%"></div></div><span class="n">≈ 120 M rows</span></div>
+    <p class="axis">Bars on a log scale. The 100% bar is a prediction, with its range.</p>
+    <p class="verdict">Output grows with exponent <b>1.75</b>, faster than the data. Gulliver flags the join before the full run, not after the bill.</p>
+  </figure>
+</div>
+
+<section id="how" aria-labelledby="how-h">
+  <h2 class="sec" id="how-h">Five steps between your agent and the warehouse</h2>
+  <p class="sub">Every answer carries a <code>status</code> and a <code>next_step</code>, so even a small model knows what to do. Limits are set by a human in <code>gulliver.toml</code>; the agent cannot raise them or approve itself.</p>
+  <ol class="steps">
+    <li><span class="k">inspect</span><h3>See what is big</h3><p>Rows, bytes, partitions and columns, from metadata only. Free.</p></li>
+    <li><span class="k">preflight</span><h3>Price it first</h3><p>Bytes, rows and money without running, plus 12 scale-lint rules.</p></li>
+    <li><span class="k">rehearse</span><h3>Try it small</h3><p>Runs on 1%, 3%, 10% samples and predicts 100% with a range.</p></li>
+    <li><span class="k">run</span><h3>Run inside budget</h3><p>Per-query and daily limits. Above a threshold a human approves.</p></li>
+    <li><span class="k">receipt</span><h3>Show the proof</h3><p>Estimated, rehearsed, approved, run: predicted versus actual.</p></li>
+  </ol>
+</section>
+
+<section aria-labelledby="demo-h">
+  <h2 class="sec" id="demo-h">The real CLI, on a real table</h2>
+  <p class="sub">Recorded on the 5-million-row demo database that <code>gulliver demo</code> builds in seconds. Nothing in this recording is staged.</p>
+  <div class="demo"><img src="demo.svg" alt="Terminal recording: Gulliver inspects the demo tables, rehearses a self-join on 1%, 3% and 10% and predicts about 120 million output rows, then rewrites a DATE(ts) filter into a range on ts with the same rows." loading="lazy" width="1568" height="566"></div>
+  <p class="cap">Script: <a href="https://github.com/laaielichter/Gulliver/blob/main/docs/demo.sh">docs/demo.sh</a></p>
+</section>
+
+<section id="fix" aria-labelledby="fix-h">
+  <div class="fix">
+    <div>
+      <h2 class="sec" id="fix-h">It fixes the SQL, and says what changed</h2>
+      <p class="sub">Small models read a lint warning and still write the slow query. <code>gulliver_fix</code> rewrites it for them and labels every change. "Same rows" is only promised when Gulliver has checked the column type on your connection.</p>
+      <ul class="guar">
+        <li><code>same</code> exactly the same rows. The default.</li>
+        <li><code>assumes</code> same rows if the column is a date or timestamp without zone.</li>
+        <li><code>nulls</code> same rows unless the subquery returns NULL.</li>
+        <li><code>changes</code> a different result on purpose, like a LIMIT.</li>
+      </ul>
+    </div>
+    <div>
+      <pre class="diff" aria-label="Example rewrite"><span class="c">-- GV005, ts is TIMESTAMP: same rows</span>
+<span class="m">- where date(ts) = '2025-01-20'</span>
+<span class="p">+ where ts &gt;= '2025-01-20'</span>
+<span class="p">+   and ts &lt;  '2025-01-21'</span>
+
+<span class="c">-- partitions, indexes and Parquet
+-- min/max statistics can now skip data</span></pre>
+      <p class="cap">Every "same" rewrite is tested against real data: NULLs, infinity, leap days, the last microsecond of a day, and time zones that repeat midnight.</p>
+    </div>
+  </div>
+</section>
+
+<section id="install" aria-labelledby="install-h">
+  <h2 class="sec" id="install-h">Add it to your agent</h2>
+  <p class="sub">Point it at a warehouse with <code>--dsn</code>, or at a <code>gulliver.toml</code> with connections and budgets. To try it without a warehouse, run <code>gulliver demo</code>.</p>
+  <div class="tabs" role="tablist" aria-label="Agent">
+    <button role="tab" aria-selected="true" aria-controls="p-claude" id="t-claude">Claude Code</button>
+    <button role="tab" aria-selected="false" aria-controls="p-codex" id="t-codex" tabindex="-1">Codex CLI</button>
+    <button role="tab" aria-selected="false" aria-controls="p-json" id="t-json" tabindex="-1">Cursor, Claude Desktop, Gemini CLI</button>
+    <button role="tab" aria-selected="false" aria-controls="p-cli" id="t-cli" tabindex="-1">CLI only</button>
+  </div>
+  <div class="panel" role="tabpanel" id="p-claude" aria-labelledby="t-claude"><pre><code>claude mcp add gulliver -- uvx gulliver-mcp --dsn /abs/path/data.duckdb
+
+# or as a plugin, with the skill included
+/plugin marketplace add laaielichter/Gulliver
+/plugin install gulliver@gulliver</code></pre></div>
+  <div class="panel" role="tabpanel" id="p-codex" aria-labelledby="t-codex" hidden><pre><code># ~/.codex/config.toml
+[mcp_servers.gulliver]
+command = "uvx"
+args = ["gulliver-mcp", "--config", "/abs/path/gulliver.toml"]</code></pre></div>
+  <div class="panel" role="tabpanel" id="p-json" aria-labelledby="t-json" hidden><pre><code>{
+  "mcpServers": {
+    "gulliver": {
+      "command": "uvx",
+      "args": ["gulliver-mcp", "--config", "/abs/path/gulliver.toml"]
+    }
+  }
+}</code></pre><p>Prefer npm? Use <code>"command": "npx", "args": ["-y", "gulliver-mcp", ...]</code>. It needs uv on the machine.</p></div>
+  <div class="panel" role="tabpanel" id="p-cli" aria-labelledby="t-cli" hidden><pre><code>pip install gulliver-mcp
+gulliver demo
+gulliver --dsn gulliver_demo.duckdb preflight "select country, count(*) from users group by 1"
+gulliver tools --format openai   # function definitions for any API</code></pre></div>
+</section>
+
+<section aria-labelledby="tools-h">
+  <h2 class="sec" id="tools-h">Also for the pipeline around the query</h2>
+  <p class="sub">Fourteen MCP tools in total, each also a CLI command with <code>--json</code>.</p>
+  <div class="tools">
+    <div><code>gulliver_impact</code><span>What breaks if you change or drop a column: column-level lineage over SQL models or a dbt manifest.</span></div>
+    <div><code>gulliver_drift</code><span>Columns removed, retyped or added since the last snapshot, and the models they break.</span></div>
+    <div><code>gulliver_diff</code><span>Do two queries or tables return the same rows? Hashed inside the engine, also across engines.</span></div>
+    <div><code>gulliver_translate</code><span>SQL between DuckDB, Postgres, BigQuery and Snowflake, with warnings.</span></div>
+    <div><code>gulliver_incremental</code><span>Can a full-rebuild model be incremental? The SQL, the dbt config and the rows it saves.</span></div>
+    <div><code>gulliver_check</code><span>Unique keys, not null, accepted values, ranges, freshness and row-count jumps in one scan.</span></div>
+  </div>
+</section>
+
+<section id="compare" aria-labelledby="cmp-h">
+  <h2 class="sec" id="cmp-h">How it compares</h2>
+  <p class="sub">Based on each project's public docs in October 2026. If something is out of date, <a href="https://github.com/laaielichter/Gulliver/issues/new">open an issue</a>.</p>
+  <div class="scroll">
+  <table class="cmp">
+    <thead><tr><th scope="col"></th><th scope="col">Gulliver</th><th scope="col">cost-guard-mcp</th><th scope="col">Database MCP servers</th><th scope="col">dbt-mcp, dbt --sample</th></tr></thead>
+    <tbody>
+      <tr><th scope="row">Cost before running</th><td>Yes, with an accuracy label</td><td>BigQuery, Snowflake, Databricks</td><td>Limits and timeouts</td><td>No</td></tr>
+      <tr><th scope="row">Rehearse on samples, predict 100%</th><td>Yes</td><td>No</td><td>No</td><td>dbt only, time windows</td></tr>
+      <tr><th scope="row">Auto-fix with a same-rows guarantee</th><td>Yes</td><td>No</td><td>No</td><td>No</td></tr>
+      <tr><th scope="row">Budget gate, human approval, receipt</th><td>Yes</td><td>No</td><td>Read-only modes</td><td>No</td></tr>
+      <tr><th scope="row">Engines</th><td>DuckDB, Postgres, BigQuery and Snowflake (beta)</td><td>BigQuery, Snowflake, Databricks</td><td>Many</td><td>dbt projects</td></tr>
+    </tbody>
+  </table>
+  </div>
+  <p class="honest">What Gulliver does not do: run your pipelines, replace dbt, or host anything for you. There is no Databricks or ClickHouse engine yet, and BigQuery and Snowflake have only been tested against fakes so far.</p>
+</section>
+</main>
+
+<footer>
+  <span>Gulliver is MIT licensed. Built by <a href="https://github.com/laaielichter">laaielichter</a>.</span>
+  <span><a href="https://pypi.org/project/gulliver-mcp/">PyPI</a> &nbsp; <a href="https://www.npmjs.com/package/gulliver-mcp">npm</a> &nbsp; <a href="https://github.com/laaielichter/Gulliver/blob/main/CONTRIBUTING.md">Contribute</a></span>
+</footer>
+</div>
+
+<script>
+(function(){
+  var copy=document.getElementById('copy');
+  copy.addEventListener('click',function(){
+    var t=document.getElementById('cmd').textContent;
+    var done=function(){copy.textContent='Copied';setTimeout(function(){copy.textContent='Copy'},1600)};
+    if(navigator.clipboard){navigator.clipboard.writeText(t).then(done,function(){})}
+  });
+  var ladder=document.getElementById('ladder');
+  requestAnimationFrame(function(){requestAnimationFrame(function(){ladder.classList.add('go')})});
+  var tabs=[].slice.call(document.querySelectorAll('[role=tab]'));
+  function select(tab){
+    tabs.forEach(function(t){
+      var on=t===tab;t.setAttribute('aria-selected',on);t.tabIndex=on?0:-1;
+      document.getElementById(t.getAttribute('aria-controls')).hidden=!on;
+    });
+  }
+  tabs.forEach(function(t,i){
+    t.addEventListener('click',function(){select(t)});
+    t.addEventListener('keydown',function(e){
+      var d=e.key==='ArrowRight'?1:e.key==='ArrowLeft'?-1:0;
+      if(d){var n=tabs[(i+d+tabs.length)%tabs.length];select(n);n.focus();}
+    });
+  });
+})();
+</script>
+</body>
+</html>
