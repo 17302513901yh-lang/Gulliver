@@ -42,7 +42,8 @@ gulliver = "gulliver.cli:main"
 gulliver-mcp = "gulliver.mcp_server:main"
 
 [project.urls]
-Homepage = "https://github.com/laaielichter/gulliver"
+Homepage = "https://laaielichter.github.io/Gulliver/"
+Source = "https://github.com/laaielichter/Gulliver"
 Issues = "https://github.com/laaielichter/gulliver/issues"
 
 [tool.hatch.build.targets.wheel]
