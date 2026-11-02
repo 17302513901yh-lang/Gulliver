@@ -11,13 +11,59 @@ license = "MIT"
 license-files = ["LICENSE"]
 requires-python = ">=3.10"
 authors = [{ name = "laaielichter" }]
-keywords = ["mcp", "ai-agents", "data-engineering", "sql", "duckdb", "bigquery", "snowflake", "postgres", "cost", "llm"]
+keywords = [
+  "mcp",
+  "mcp-server",
+  "model-context-protocol",
+  "ai-agents",
+  "llm",
+  "claude-code",
+  "codex",
+  "cursor",
+  "gemini-cli",
+  "sql",
+  "sql-linter",
+  "text-to-sql",
+  "query-optimization",
+  "cost-optimization",
+  "finops",
+  "dry-run",
+  "sampling",
+  "data-engineering",
+  "analytics-engineering",
+  "data-quality",
+  "data-lineage",
+  "data-diff",
+  "schema-drift",
+  "dbt",
+  "sqlglot",
+  "duckdb",
+  "postgres",
+  "postgresql",
+  "bigquery",
+  "snowflake",
+]
 classifiers = [
   "Development Status :: 3 - Alpha",
+  "Environment :: Console",
   "Intended Audience :: Developers",
+  "Intended Audience :: Information Technology",
+  "Intended Audience :: Science/Research",
+  "Natural Language :: English",
+  "Operating System :: OS Independent",
   "Programming Language :: Python :: 3",
+  "Programming Language :: Python :: 3 :: Only",
+  "Programming Language :: Python :: 3.10",
+  "Programming Language :: Python :: 3.11",
+  "Programming Language :: Python :: 3.12",
+  "Programming Language :: Python :: 3.13",
+  "Programming Language :: SQL",
   "Topic :: Database",
+  "Topic :: Database :: Front-Ends",
+  "Topic :: Scientific/Engineering :: Artificial Intelligence",
+  "Topic :: Scientific/Engineering :: Information Analysis",
   "Topic :: Software Development :: Quality Assurance",
+  "Topic :: Software Development :: Testing",
 ]
 dependencies = [
   "sqlglot>=25.0",
@@ -43,8 +89,10 @@ gulliver-mcp = "gulliver.mcp_server:main"
 
 [project.urls]
 Homepage = "https://laaielichter.github.io/Gulliver/"
+Documentation = "https://github.com/laaielichter/Gulliver#readme"
 Source = "https://github.com/laaielichter/Gulliver"
-Issues = "https://github.com/laaielichter/gulliver/issues"
+Issues = "https://github.com/laaielichter/Gulliver/issues"
+Changelog = "https://github.com/laaielichter/Gulliver/blob/main/CHANGELOG.md"
 
 [tool.hatch.build.targets.wheel]
 packages = ["src/gulliver"]

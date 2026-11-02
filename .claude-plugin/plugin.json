@@ -6,7 +6,7 @@
     "name": "laaielichter"
   },
   "homepage": "https://laaielichter.github.io/Gulliver/",
-  "repository": "https://github.com/laaielichter/gulliver",
+  "repository": "https://github.com/laaielichter/Gulliver",
   "license": "MIT",
   "keywords": [
     "agent-tools",
@@ -14,16 +14,24 @@
     "claude-code",
     "codex",
     "cost",
+    "cost-optimization",
     "cursor",
+    "data-diff",
     "data-engineering",
+    "data-lineage",
+    "data-quality",
     "dbt",
     "duckdb",
+    "finops",
     "gemini-cli",
     "mcp",
     "postgres",
+    "query-optimization",
+    "schema-drift",
     "snowflake",
     "sql",
-    "sql-linter"
+    "sql-linter",
+    "text-to-sql"
   ],
   "skills": "./skills/",
   "mcpServers": {
