@@ -3,16 +3,18 @@
 ## Unreleased
 
 ### Added
-- Opt-in `check --samples N` / MCP `samples` (0-20) reports guarded offending values and row counts for failed unique, accepted-values and range checks. Each extra query is budget-gated and logged; blocked or failed samples leave the check result intact (#48).
+- Opt-in `check --samples N` / MCP `samples` (0-20) reports guarded offending values and row counts for failed unique, accepted-values and range checks. Each extra query is budget-gated and logged; blocked or failed samples leave the check result intact (#48, #49).
 - Lint rule GV016 `order-by-random`: warns on `ORDER BY RANDOM()` / `RAND()`, also with LIMIT, and points to `TABLESAMPLE` / `USING SAMPLE` for random sampling (#23).
 
 ### Thanks
-- @bfs2021 for refusing NaN, infinite and negative budget limits (#40).
+- @bfs2021 for refusing NaN, infinite and negative budget limits (#40) and the GV001 fix for EXISTS subqueries (#50).
+- @mayankdhingra02 for the guarded samples in `gulliver check` (#49).
 - @HarshRajSinghania for the read-only Postgres role docs (#8), which shaped the section that shipped in 0.3.0.
 - @YinL-k for lint rule GV016 (#23).
 - @ShahadatTest for `gulliver fix -o/--output` (#10) and reading and writing SQL files as UTF-8 (#15).
 
 ### Fixed
+- GV001 no longer warns on `SELECT *` inside an `EXISTS` or `NOT EXISTS` subquery: it is a semi-join, so no engine reads those columns. A `SELECT *` elsewhere in the same query is still reported (#50).
 - Budget limits that are `nan`, infinite or negative are refused at load time with an error that names the key, from `gulliver.toml` and from `GULLIVER_*` variables. Before, `max_query_usd = nan` silently switched the hard stop off (#40).
 - `gulliver_drift` is no longer annotated read-only. It saves a local snapshot file (on the first call, and with `save=true`), so it now reports `readOnlyHint: false`, `destructiveHint: false`. It still only reads the database. Reported by Glama's tool scoring.
 - New test `tests/test_tool_annotations.py`: read-only tools may not describe writes.
