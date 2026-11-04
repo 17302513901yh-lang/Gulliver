@@ -4,6 +4,7 @@ import re
 
 from mcp import Client
 
+from gulliver.lint import RULES
 from gulliver.mcp_server import build_server
 
 WRITE_WORDS = re.compile(r"(?<!never )(?<!not )\b(saves?|writes?|replaces?|deletes?|drops?|stores?)\b",
@@ -37,3 +38,10 @@ def test_read_only_tools_do_not_describe_writes():
         if _hints(tool).get("readOnlyHint"):
             assert not WRITE_WORDS.search(tool.description or ""), (
                 f"{name} is annotated read-only, but its description mentions writing: {tool.description!r}")
+
+
+def test_lint_description_covers_the_last_rule_in_rules():
+    ids = sorted(RULES)
+    description = _tools()["gulliver_lint"].description or ""
+    assert f"{ids[0]}-{ids[-1]}" in description, (
+        f"gulliver_lint should advertise rules {ids[0]}-{ids[-1]}, got: {description!r}")

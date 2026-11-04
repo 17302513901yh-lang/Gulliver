@@ -59,7 +59,7 @@ Gulliver sits between the agent and the warehouse:
 | Step | Tool | What happens |
 |---|---|---|
 | 1 | `gulliver_inspect` | Which tables are big? Rows, bytes, partitions, columns. Metadata only, free. |
-| 2 | `gulliver_preflight` | Bytes, rows and money **before** running, plus **scale lint** (15 rules), the read-only gate and the budget gate. When a safe rewrite exists, the answer already contains the fixed SQL (`autofix`). |
+| 2 | `gulliver_preflight` | Bytes, rows and money **before** running, plus **scale lint** (16 rules), the read-only gate and the budget gate. When a safe rewrite exists, the answer already contains the fixed SQL (`autofix`). |
 | 3 | `gulliver_rehearse` | Runs the query on 1%, 3% and 10% samples, fits a growth curve and **predicts the full run** with a confidence range. Catches joins that multiply rows. |
 | 4 | `gulliver_run` | Runs the full query only inside the budget. Otherwise answers `needs_rehearsal` or `needs_approval`. The rows come back marked as untrusted data, with secrets masked and personal data flagged. |
 | 5 | `gulliver_receipt` | Markdown proof for the human: what was estimated, rehearsed, approved and run, and predicted vs actual. |

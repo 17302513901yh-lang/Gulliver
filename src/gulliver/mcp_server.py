@@ -24,6 +24,13 @@ except ImportError:  # pragma: no cover - mcp 1.x
 
 from mcp.types import ToolAnnotations
 
+from .lint import RULES
+
+# Derived from RULES so that adding a rule also updates what the tool says it
+# covers; the description used to hard-code "GV001-GV012" and drift behind.
+_RULE_IDS = sorted(RULES)
+RULE_RANGE = f"{_RULE_IDS[0]}-{_RULE_IDS[-1]}" if _RULE_IDS else ""
+
 INSTRUCTIONS = """Gulliver is a dress rehearsal for SQL on big data. Use it before running SQL you wrote on real tables.
 
 Workflow:
@@ -140,7 +147,7 @@ def build_server(toolset: str | None = None) -> Any:
 
     @server.tool(name="gulliver_lint", annotations=READ_ONLY,
                  description="Static scale lint, no database needed: report SQL patterns that are fine on small data "
-                             "but expensive or wrong on big data (rules GV001-GV012: SELECT *, missing partition "
+                             f"but expensive or wrong on big data (rules {RULE_RANGE}: SELECT *, missing partition "
                              "filter, cross joins, functions on partition columns, ...). Each finding has a "
                              "severity and a suggested fix as text; nothing is rewritten. Use it for a quick check "
                              "while writing SQL; use gulliver_fix to get the rewritten SQL, gulliver_preflight for "
