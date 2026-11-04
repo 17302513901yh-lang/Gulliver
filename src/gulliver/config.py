@@ -12,6 +12,7 @@ environment variables or default credential chains (for example Google ADC).
 
 from __future__ import annotations
 
+import math
 import os
 from dataclasses import dataclass, field, fields, replace
 from pathlib import Path
@@ -81,21 +82,48 @@ _ENV_BUDGET = {
 }
 
 
+def _check_limit(key: str, value: float) -> float:
+    """Reject limits that no comparison can catch.
+
+    Every comparison with NaN is false, so `cost > nan` never blocks and the
+    hard stop is silently off. `inf` turns a limit into "never stop" and a
+    negative one into "always stop" -- with a message that blames the query
+    instead of the config. 0 stays valid: several limits use it for "off".
+
+    `approval_over_usd` is the one exception: a negative threshold is the
+    documented way to ask for every run, including the free ones, and the
+    stdio elicitation test drives the client that way. NaN and infinities are
+    still refused there.
+    """
+    if isinstance(value, float) and not math.isfinite(value):
+        raise ConfigError(
+            f"Budget value {key}={value!r} must be finite; NaN and infinite limits can never be compared, "
+            "so the limit would silently be off. Use 0 to switch a limit off."
+        )
+    if value < 0 and key != "approval_over_usd":
+        raise ConfigError(f"Budget value {key}={value!r} must not be negative. Use 0 to switch a limit off.")
+    return value
+
+
 def _agent_limits(value: Any) -> dict[str, float]:
     """agent_day_usd = 5 (every agent) or a table {default = 5, "claude-code" = 10}."""
     items = value.items() if isinstance(value, dict) else [("default", value)]
     try:
-        return {str(k): float(v) for k, v in items}
+        limits = {str(k): float(v) for k, v in items}
     except (TypeError, ValueError) as exc:
         raise ConfigError(f"Budget value agent_day_usd={value!r} must be a number or a table of numbers") from exc
+    for name, limit in limits.items():
+        _check_limit(f"agent_day_usd[{name}]", limit)
+    return limits
 
 
 def _coerce(cls: type, key: str, value: Any) -> Any:
     default = getattr(cls, key)
     try:
-        return type(default)(value)
+        converted = type(default)(value)
     except (TypeError, ValueError) as exc:
         raise ConfigError(f"Budget value {key}={value!r} is not a valid {type(default).__name__}") from exc
+    return _check_limit(key, converted)
 
 
 @dataclass(frozen=True)

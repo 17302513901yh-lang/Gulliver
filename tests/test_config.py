@@ -64,3 +64,44 @@ def test_example_config_loads(monkeypatch):
     assert s.connection("bq").engine == "bigquery"
     assert s.connection("pg").engine == "postgres"
     assert s.budget.max_query_usd == 1.0
+
+
+def test_nan_budget_from_toml_is_refused(tmp_path, monkeypatch):
+    monkeypatch.chdir(tmp_path)
+    (tmp_path / "gulliver.toml").write_text("[budget]\nmax_query_usd = nan\n")
+    with pytest.raises(ConfigError) as err:
+        load_settings()
+    assert "max_query_usd" in str(err.value)
+
+
+def test_nan_budget_from_environment_is_refused(tmp_path, monkeypatch):
+    monkeypatch.chdir(tmp_path)
+    monkeypatch.setenv("GULLIVER_MAX_QUERY_USD", "nan")
+    with pytest.raises(ConfigError) as err:
+        load_settings()
+    assert "max_query_usd" in str(err.value)
+
+
+@pytest.mark.parametrize("value", ["inf", "-inf", "-1"])
+def test_infinite_and_negative_budget_is_refused(tmp_path, monkeypatch, value):
+    monkeypatch.chdir(tmp_path)
+    monkeypatch.setenv("GULLIVER_DAY_USD", value)
+    with pytest.raises(ConfigError) as err:
+        load_settings()
+    assert "day_usd" in str(err.value)
+
+
+def test_zero_budget_still_loads(tmp_path, monkeypatch):
+    monkeypatch.chdir(tmp_path)
+    (tmp_path / "gulliver.toml").write_text("[budget]\nmax_query_usd = 0\nsession_usd = 0\n")
+    s = load_settings()
+    assert s.budget.max_query_usd == 0.0
+    assert s.budget.session_usd == 0.0
+
+
+def test_nan_agent_day_usd_is_refused(tmp_path, monkeypatch):
+    monkeypatch.chdir(tmp_path)
+    (tmp_path / "gulliver.toml").write_text('[budget]\n[budget.agent_day_usd]\n"claude-code" = nan\n')
+    with pytest.raises(ConfigError) as err:
+        load_settings()
+    assert "agent_day_usd" in str(err.value)
