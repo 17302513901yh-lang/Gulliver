@@ -132,6 +132,18 @@ def test_lint_config_disable_severity_and_errors():
         lint_config_from_mapping({"severity": {"GV001": "fatal"}})
 
 
+def test_unknown_rule_ids_are_refused():
+    """GV099 (a typo for GV009) is well-formed but no rule uses it: it must not load and silently disable nothing."""
+    with pytest.raises(ConfigError, match="unknown rule 'GV099'"):
+        lint_config_from_mapping({"disable": ["GV099"]})
+    with pytest.raises(ConfigError, match="unknown rule 'GV099'"):
+        lint_config_from_mapping({"severity": {"GV099": "error"}})
+    # any case, names and the two file-lint meta rules still load
+    cfg = lint_config_from_mapping({"disable": ["gv001", "select-star", "GV900", "GV901"],
+                                    "severity": {"gv006": "warn"}})
+    assert cfg.disable == {"GV001", "GV900", "GV901"} and cfg.severity == {"GV006": "warn"}
+
+
 def test_config_changes_findings_and_exit(tmp_path):
     f = _write(tmp_path / "q.sql", "select * from t order by 1\n")
     cfg = LintConfig(disable=frozenset({"GV001"}), severity={"GV006": "error"})
@@ -267,6 +279,13 @@ def test_cli_reads_lint_section_from_toml(state, tmp_path, capsys):
     assert main(["lint", "."]) == 0                                        # GV002 disabled, legacy excluded
     _write(tmp_path / "q.sql", "select x from t order by x\n")
     assert main(["lint", "."]) == 2                                        # GV006 warn fails with fail_on=warn
+
+
+def test_cli_refuses_an_unknown_rule_id_in_the_toml(state, tmp_path, capsys):
+    _write(tmp_path / "gulliver.toml", '[lint]\ndisable = ["GV099"]\n')
+    _write(tmp_path / "models" / "q.sql", "select * from t limit 1\n")
+    assert main(["lint", "models"]) == 1
+    assert "unknown rule 'GV099'" in capsys.readouterr().out
 
 
 # -- fix --check / --write ---------------------------------------------------------------------------------

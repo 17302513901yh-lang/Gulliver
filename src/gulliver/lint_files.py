@@ -76,10 +76,16 @@ _LINT_KEYS = {"disable", "severity", "fail_on", "exclude", "dialect", "warn_unus
 
 
 def _rule_id(token: str) -> str | None:
-    """GV001 or select-star -> GV001; None when unknown."""
+    """GV001, gv001 or select-star -> GV001; None when the rule does not exist.
+
+    A well-formed id that no rule uses (GV099, a typo for GV009) is not a rule:
+    letting it through as an id made `disable = ["GV099"]` load fine and turn
+    nothing off, so the warning kept showing and nothing said why.
+    """
     t = token.strip()
     if re.fullmatch(r"(?i)GV\d+", t):
-        return t.upper()
+        rid = t.upper()
+        return rid if rid in RULES or rid in META_RULES else None
     by_name = {name: rid for rid, name in {**RULES, **META_RULES}.items()}
     return by_name.get(t.lower())
 
