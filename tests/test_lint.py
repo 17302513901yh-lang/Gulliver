@@ -23,6 +23,31 @@ def test_limit_removes_unbounded_warning():
     assert "GV002" not in rules("select id from events limit 10")
 
 
+@pytest.mark.parametrize("dialect", ["duckdb", "postgres"])
+def test_select_star_inside_exists_is_not_reported(dialect):
+    sql = ("select u.id from users u where exists "
+           "(select * from events e where e.user_id = u.id) limit 10")
+    assert "GV001" not in rules(sql, dialect)
+
+
+@pytest.mark.parametrize("dialect", ["duckdb", "postgres"])
+def test_select_star_inside_not_exists_is_not_reported(dialect):
+    sql = ("select u.id from users u where not exists "
+           "(select * from events e where e.user_id = u.id) limit 10")
+    assert "GV001" not in rules(sql, dialect)
+
+
+def test_select_star_next_to_exists_is_still_reported():
+    sql = ("select u.* from users u where exists "
+           "(select * from events e where e.user_id = u.id)")
+    assert rules(sql)["GV001"] == "warn"
+
+
+def test_select_star_in_a_derived_table_is_still_reported():
+    sql = "select id from (select * from events) t limit 10"
+    assert rules(sql)["GV001"] == "warn"
+
+
 def test_missing_join_condition_is_an_error():
     assert rules("select e.id from events e, users u")["GV003"] == "error"
 
