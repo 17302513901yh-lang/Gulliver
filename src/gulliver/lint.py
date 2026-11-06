@@ -70,11 +70,17 @@ def _outer_select(tree: exp.Expression) -> exp.Select | None:
 
 
 def _has_aggregation(select: exp.Select) -> bool:
+    """True when this SELECT collapses its own rows: a GROUP BY, or an aggregate it evaluates.
+
+    An aggregate that belongs to a nested SELECT (a scalar subquery in the projection list, say) collapses
+    that subquery, not this query: `select u.id, (select count(*) from orders) as n from users u` still
+    returns one row per user."""
     if select.args.get("group"):
         return True
     for projection in select.expressions:
         for node in projection.walk():
-            if isinstance(node, AGG_TYPES) and not node.find_ancestor(exp.Window):
+            if isinstance(node, AGG_TYPES) and not node.find_ancestor(exp.Window) and (
+                    node.find_ancestor(exp.Select) is select):
                 return True
     return False
 
@@ -123,7 +129,8 @@ def lint(statement_tree: exp.Expression, dialect: str = "duckdb",
     # GV002 unbounded-output and GV006 order-without-limit on the outermost query
     if outer is not None:
         has_limit = bool(outer.args.get("limit") or outer.args.get("fetch"))
-        if not has_limit and not _has_aggregation(outer):
+        has_from = (outer.args.get("from_") or outer.args.get("from")) is not None
+        if has_from and not has_limit and not _has_aggregation(outer):
             add("GV002", "warn",
                 "The result has no LIMIT and no aggregation, so it can return every row.",
                 "Add a LIMIT for exploration, or aggregate (GROUP BY / COUNT) before returning rows.", outer)
