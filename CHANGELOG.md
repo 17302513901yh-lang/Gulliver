@@ -6,10 +6,15 @@
 - Opt-in `check --samples N` / MCP `samples` (0-20) reports guarded offending values and row counts for failed unique, accepted-values and range checks. Each extra query is budget-gated and logged; blocked or failed samples leave the check result intact (#48, #49).
 - Lint rule GV016 `order-by-random`: warns on `ORDER BY RANDOM()` / `RAND()`, also with LIMIT, and points to `TABLESAMPLE` / `USING SAMPLE` for random sampling (#23).
 - Prompt-injection scan: new `override_i18n` signal for "ignore previous instructions" in Dutch, German, French and Spanish (#22).
+- Lint rule GV017 `deep-offset`: warns when an `OFFSET` is an integer literal of 10,000 or more and suggests keyset pagination (#30).
+- Result guard: npm (`npm_...`), PyPI (`pypi-...`) and Hugging Face (`hf_...`) tokens are tagged `api_key` and masked inside free text (#38).
+- `gulliver calibration [--days N] [-c NAME]` and the `gulliver://calibration` MCP resource show how often rehearsal ranges held up against real runs, per metric and confidence level. New run receipts store `low`, `high` and `confidence` in `predicted_vs_actual` (#47).
 
 ### Thanks
 - @bfs2021 for refusing NaN, infinite and negative budget limits (#40) and the GV001 fix for EXISTS subqueries (#50).
-- @mayankdhingra02 for the guarded samples in `gulliver check` (#49).
+- @mayankdhingra02 for the guarded samples in `gulliver check` (#49) and the rehearsal calibration report (#61).
+- @shaw778 for the derived `gulliver_lint` rule range (#41), the npm, PyPI and Hugging Face token shapes (#58) and lint rule GV017 (#59).
+- @ariktadas144 for the non-English prompt-injection signal (#62).
 - @Doomguy-BFG9000 for escaping `|` and `~` in composite keys and diffs (#53).
 - @17302513901yh-lang for refusing unknown lint rule ids (#54).
 - @HarshRajSinghania for the read-only Postgres role docs (#8), which shaped the section that shipped in 0.3.0.
@@ -17,6 +22,7 @@
 - @ShahadatTest for `gulliver fix -o/--output` (#10) and reading and writing SQL files as UTF-8 (#15).
 
 ### Fixed
+- The `gulliver_lint` tool description builds its rule range from `RULES`; it said GV001-GV012 while the linter had grown past that (#37).
 - A lint rule id that no rule uses (`disable = ["GV099"]`, a typo for GV009) is refused with "unknown rule", the way unknown names already were. Before, it loaded and turned nothing off (#54).
 - Composite uniqueness checks and data diffs escape `~` and `|` in each text part before joining, so embedded separators no longer make distinct keys or rows compare equal (#36).
 - GV001 no longer warns on `SELECT *` inside an `EXISTS` or `NOT EXISTS` subquery: it is a semi-join, so no engine reads those columns. A `SELECT *` elsewhere in the same query is still reported (#50).
