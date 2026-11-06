@@ -13,6 +13,29 @@ def test_clean_aggregate_has_no_findings():
     assert rules("select country, count(*) from users where signup_date >= '2024-01-01' group by 1") == {}
 
 
+def test_unbounded_output_absent_when_the_outer_query_aggregates():
+    for sql in ("select count(*) from events",
+                "select country, count(*) from users group by 1",
+                "select exists (select 1 from orders) as any_orders",
+                "select (select count(*) from events) as n",
+                "select 1"):
+        for dialect in ("duckdb", "postgres"):
+            assert "GV002" not in rules(sql, dialect), (sql, dialect)
+
+
+def test_aggregate_in_a_scalar_subquery_does_not_collapse_the_outer_rows():
+    # The COUNT(*) belongs to the subquery: the outer query still returns one row per user.
+    for dialect in ("duckdb", "postgres"):
+        r = rules("select u.id, (select count(*) from orders o where o.user_id = u.id) as n from users u",
+                  dialect)
+        assert r["GV002"] == "warn", (r, dialect)
+
+
+def test_unbounded_output_still_reported_for_a_plain_select():
+    for dialect in ("duckdb", "postgres"):
+        assert rules("select id from users", dialect)["GV002"] == "warn"
+
+
 def test_select_star_and_unbounded_output():
     r = rules("select * from events")
     assert r["GV001"] == "warn"
